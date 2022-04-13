@@ -5,9 +5,12 @@ People can buy lottery tickets (with the chain's native currency) only during th
 a lottery winner is chosen and most of the pot is paid to them.
 
 ### Requirements:
+
 - [foundry](https://github.com/gakonst/foundry)
+- [solidity prettier plugin](https://github.com/prettier-solidity/prettier-plugin-solidity)
 
 ### Run tests:
+
 ```
 forge test
 ```
