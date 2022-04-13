@@ -2,16 +2,18 @@
 pragma solidity 0.8.13;
 
 import "ds-test/test.sol";
+import "forge-std/Vm.sol";
+import "solmate/test/utils/mocks/MockERC20.sol";
 import "../LotteryV1.sol";
 
-interface CheatCodes {
-    function prank(address) external;
-    function expectRevert(bytes4) external;
-}
 
 contract ContractTest is DSTest {
     LotteryV1 private lottery;
-    CheatCodes constant cheats = CheatCodes(HEVM_ADDRESS);
+    Vm vm = Vm(HEVM_ADDRESS);
+    MockERC20 token;
+
+    address alice = address(0x12341234);
+    address bob = address(0x67896789);
 
     uint256 public MAX_TICKETS = 100;
     uint256 public TICKET_PRICE = 1;
@@ -19,7 +21,17 @@ contract ContractTest is DSTest {
     uint256 public ADMIN_FEE = 1; // 1%
 
     function setUp() public {
+        token = new MockERC20("TestToken", "TT0", 18);
+        vm.label(address(token), "TestToken");
+
+        vm.label(alice, "Alice");
+        vm.label(bob, "Bob");
+        vm.label(address(this), "TestContract");
+
+        token.mint(alice, 1e18);
+
         lottery = new LotteryV1(MAX_TICKETS, TICKET_PRICE, BUY_PERIOD, ADMIN_FEE);
+        vm.label(address(lottery), "TestLottery");
     }
 
     function testDeployContract() public {
@@ -36,11 +48,13 @@ contract ContractTest is DSTest {
     }
 
     function testBuyTicket() public {
-        cheats.prank(address(1));
-        cheats.expectRevert(bytes("Ticket purchase underpriced"));
-        lottery.buyTicket{value: TICKET_PRICE};
-        assertEq(lottery.ticketsBought(), 1);
-        assertEq(address(lottery).balance, TICKET_PRICE);
-        // assertEq(lottery.ticketBuyers(0), address(1));
+        vm.startPrank(alice);
+        assertEq(token.balanceOf(alice), 1e18);
+        vm.expectRevert("Ticket purchase underpriced");
+        lottery.buyTicket();
+        vm.stopPrank();
+        // assertEq(lottery.ticketsBought(), 1);
+        // assertEq(address(lottery).balance, TICKET_PRICE);
+        // assertEq(lottery.ticketBuyers(0), alice);
     }
 }
