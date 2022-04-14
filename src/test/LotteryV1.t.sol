@@ -4,7 +4,6 @@ pragma solidity 0.8.13;
 import "ds-test/test.sol";
 import "forge-std/Vm.sol";
 import {stdCheats} from "forge-std/stdlib.sol";
-// import "solmate/test/utils/mocks/MockERC20.sol";
 import "../LotteryV1.sol";
 import "forge-std/console.sol";
 
@@ -22,22 +21,17 @@ contract ContractTest is DSTest, stdCheats {
     uint256 public ADMIN_FEE = 1; // 1%
 
     function setUp() public {
-        // token = new MockERC20("TestToken", "TT0", 18);
-        // vm.label(address(token), "TestToken");
-
-        vm.label(alice, "Alice");
-        vm.label(bob, "Bob");
-        vm.label(address(this), "TestContract");
-
-        // token.mint(alice, 1e18);
-
         lottery = new LotteryV1(
             MAX_TICKETS,
             TICKET_PRICE,
             BUY_PERIOD,
             ADMIN_FEE
         );
+
         vm.label(address(lottery), "TestLottery");
+        vm.label(alice, "Alice");
+        vm.label(bob, "Bob");
+        vm.label(address(this), "TestContract");
     }
 
     function testDeployContract() public {
@@ -58,33 +52,40 @@ contract ContractTest is DSTest, stdCheats {
 
     function testDeployLotteryFail() public {
         startHoax(bob);
-        //
+
+        vm.expectRevert("Max tickets must be greater than 0");
+        new LotteryV1(0, TICKET_PRICE, BUY_PERIOD, ADMIN_FEE);
+
+        vm.expectRevert("Ticket price must be greater than 0");
+        new LotteryV1(MAX_TICKETS, 0, BUY_PERIOD, ADMIN_FEE);
+
+        vm.expectRevert("Buy period must be at least 1 hour");
+        new LotteryV1(MAX_TICKETS, TICKET_PRICE, 0, ADMIN_FEE);
+
+        vm.expectRevert("Admin fee must be 0-100, representing 0-100%");
+        new LotteryV1(MAX_TICKETS, TICKET_PRICE, BUY_PERIOD, 101);
+
         vm.stopPrank();
     }
 
     function testBuyTicket() public {
-        // vm.startPrank(alice);
         startHoax(alice);
+
         uint256 startBalance = alice.balance;
-        // console.log("alice balance token", token.balanceOf(alice));
-        // console.log("alice start balance eth?", startBalance);
-
-        vm.expectRevert("Ticket purchase underpriced");
-        lottery.buyTicket();
-
         lottery.buyTicket{value: TICKET_PRICE}();
-        vm.stopPrank();
-
         uint256 endBalance = alice.balance;
-        // console.log("end bal alice eth", endBalance);
+
         assertEq(startBalance - TICKET_PRICE, endBalance);
         assertEq(lottery.ticketsBought(), 1);
         assertEq(address(lottery).balance, TICKET_PRICE);
         assertEq(lottery.ticketBuyers(0), alice);
+
+        vm.stopPrank();
     }
 
     function testBuyTicketFail() public {
         startHoax(alice);
+
         vm.expectRevert("Ticket purchase underpriced");
         lottery.buyTicket{value: 0}();
 
@@ -97,6 +98,7 @@ contract ContractTest is DSTest, stdCheats {
         vm.warp(BUY_PERIOD + 1); // fast forward
         vm.expectRevert("Lottery is over");
         lottery.buyTicket{value: TICKET_PRICE}();
+
         vm.stopPrank();
     }
 
