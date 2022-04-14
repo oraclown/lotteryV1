@@ -71,9 +71,26 @@ contract ContractTest is DSTest, stdCheats {
 
         uint256 endBalance = alice.balance;
         // console.log("end bal alice eth", endBalance);
-        assertGt(startBalance, endBalance);
+        assertEq(startBalance - TICKET_PRICE, endBalance);
         assertEq(lottery.ticketsBought(), 1);
         assertEq(address(lottery).balance, TICKET_PRICE);
         assertEq(lottery.ticketBuyers(0), alice);
+    }
+
+    function testBuyTicketFail() public {
+        startHoax(alice);
+        vm.expectRevert("Ticket purchase underpriced");
+        lottery.buyTicket{value: 0}();
+
+        for (uint256 i = 0; i < MAX_TICKETS; i++) {
+            lottery.buyTicket{value: TICKET_PRICE}();
+        }
+        vm.expectRevert("No more tickets left");
+        lottery.buyTicket{value: TICKET_PRICE}();
+
+        vm.warp(BUY_PERIOD + 1); // fast forward
+        vm.expectRevert("Lottery is over");
+        lottery.buyTicket{value: TICKET_PRICE}();
+        vm.stopPrank();
     }
 }
