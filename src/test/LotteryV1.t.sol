@@ -56,6 +56,12 @@ contract ContractTest is DSTest, stdCheats {
         assertEq(lottery.winner(), address(0));
     }
 
+    function testDeployLotteryFail() public {
+        startHoax(bob);
+        //
+        vm.stopPrank();
+    }
+
     function testBuyTicket() public {
         // vm.startPrank(alice);
         startHoax(alice);
@@ -91,6 +97,20 @@ contract ContractTest is DSTest, stdCheats {
         vm.warp(BUY_PERIOD + 1); // fast forward
         vm.expectRevert("Lottery is over");
         lottery.buyTicket{value: TICKET_PRICE}();
+        vm.stopPrank();
+    }
+
+    function testChooseWinnerFail() public {
+        startHoax(alice);
+        vm.expectRevert("Lottery not over");
+        lottery.chooseWinner();
+        vm.stopPrank();
+    }
+
+    function testPayWinnerFail() public {
+        startHoax(alice);
+        vm.expectRevert("Choose winner first");
+        lottery.payWinner();
         vm.stopPrank();
     }
 }
