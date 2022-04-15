@@ -77,10 +77,12 @@ contract LotteryV1 {
         (bool sent1, ) = winner.call{value: winnerPayout}("");
         require(sent1, "Failed to send reward to the winner");
 
-        (bool sent2, ) = admin.call{value: address(this).balance - ticketPrice}(
-            ""
-        );
-        require(sent2, "Failed to send admin fee");
+        if (address(this).balance > ticketPrice) {
+            (bool sent2, ) = admin.call{
+                value: address(this).balance - ticketPrice
+            }("");
+            require(sent2, "Failed to send admin fee");
+        }
 
         (bool sent3, ) = msg.sender.call{value: address(this).balance}("");
         require(sent3, "Failed to send reward for function caller");
